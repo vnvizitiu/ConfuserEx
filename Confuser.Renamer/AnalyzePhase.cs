@@ -60,7 +60,8 @@ namespace Confuser.Renamer {
 		void RegisterRenamers(ConfuserContext context, NameService service) {
 			bool wpf = false,
 			     caliburn = false,
-			     winforms = false;
+			     winforms = false,
+			     json = false;
 
 			foreach (var module in context.Modules)
 				foreach (var asmRef in module.GetAssemblyRefs()) {
@@ -73,6 +74,9 @@ namespace Confuser.Renamer {
 					}
 					else if (asmRef.Name == "System.Windows.Forms") {
 						winforms = true;
+					}
+					else if (asmRef.Name == "Newtonsoft.Json") {
+						json = true;
 					}
 				}
 
@@ -91,6 +95,12 @@ namespace Confuser.Renamer {
 				context.Logger.Debug("WinForms found, enabling compatibility.");
 				service.Renamers.Add(winformsAnalyzer);
 			}
+
+			if (json) {
+				var jsonAnalyzer = new JsonAnalyzer();
+				context.Logger.Debug("Newtonsoft.Json found, enabling compatibility.");
+				service.Renamers.Add(jsonAnalyzer);
+			}
 		}
 
 		internal void Analyze(NameService service, ConfuserContext context, ProtectionParameters parameters, IDnlibDef def, bool runAnalyzer) {
@@ -108,6 +118,11 @@ namespace Confuser.Renamer {
 				var pass = parameters.GetParameter<string>(context, def, "password", null);
 				if (pass != null)
 					service.reversibleRenamer = new ReversibleRenamer(pass);
+
+				var idOffset = parameters.GetParameter<uint>(context, def, "idOffset", 0);
+				if (idOffset != 0)
+					service.SetNameId(idOffset);
+
 				service.SetCanRename(def, false);
 			}
 
